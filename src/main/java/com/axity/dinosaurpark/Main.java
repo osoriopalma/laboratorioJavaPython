@@ -1,45 +1,30 @@
 package com.axity.dinosaurpark;
 
-import com.axity.dinosaurpark.model.CarnivoreDinosaur;
-import com.axity.dinosaurpark.model.Dinosaur;
-import com.axity.dinosaurpark.model.Guard;
-import com.axity.dinosaurpark.model.HerbivoreDinosaur;
-import com.axity.dinosaurpark.model.SatisfactionSurvey;
-import com.axity.dinosaurpark.model.Technician;
-import com.axity.dinosaurpark.model.Ticket;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.axity.dinosaurpark.zone.PowerPlantZone;
+import java.util.Random;
 
 public class Main {
 
     public static void main(String[] args) {
 
-        Dinosaur rex = new CarnivoreDinosaur(1, "Rex", "Tyrannosaurus");
-        Dinosaur bronto = new HerbivoreDinosaur(2, "Bronto", "Brachiosaurus");
+        Random rng = new Random(42);
 
-        rex.escape();
+        PowerPlantZone plant = new PowerPlantZone(
+                100.0,
+                10.0,
+                0.3,
+                200.0,
+                500.0);
 
-        List<Dinosaur> dinosaurs = new ArrayList<>();
-        dinosaurs.add(rex);
-        dinosaurs.add(bronto);
+        for (int i = 1; i <= 10; i++) {
 
-        Guard guard = new Guard(1, "Carlos", 150.0);
-        Technician technician = new Technician(2, "Luis", 150.0);
+            System.out.println("STEP " + i);
 
-        System.out.println("Estado de Rex antes del guardia: " + rex.getStatus());
+            plant.tick(rng);
 
-        guard.recaptureEscapedDinosaurs(dinosaurs);
-
-        System.out.println("Estado de Rex después del guardia: " + rex.getStatus());
-
-        Ticket ticket = new Ticket(1, 101, 25.0, "GENERAL");
-
-        SatisfactionSurvey survey = new SatisfactionSurvey(101, "Premium Enclosure", 5);
-
-        System.out.println("Rol guardia: " + guard.getRole());
-        System.out.println("Rol técnico: " + technician.getRole());
-        System.out.println("Ticket turista: " + ticket.getTouristId());
-        System.out.println("Encuesta puntuación: " + survey.getScore());
+            System.out.println("Energía: " + plant.getEnergyLevel());
+            System.out.println("Operativa: " + plant.isOperational());
+            System.out.println("----------------");
+        }
     }
 }
