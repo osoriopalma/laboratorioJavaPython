@@ -1,37 +1,28 @@
 package com.axity.dinosaurpark.model;
 
-public class Worker {
+public abstract class Worker {
 
+    private final int id;
     private final String name;
-    private final WorkerRole role;
     private final double dailySalary;
 
-    public Worker(String name, WorkerRole role, double dailySalary) {
+    public Worker(int id, String name, double dailySalary) {
+        this.id = id;
         this.name = name;
-        this.role = role;
         this.dailySalary = dailySalary;
+    }
+
+    public abstract String getRole();
+
+    public int getId() {
+        return id;
     }
 
     public String getName() {
         return name;
     }
 
-    public WorkerRole getRole() {
-        return role;
-    }
-
     public double getDailySalary() {
         return dailySalary;
     }
-
-    @Override
-    public String toString() {
-        return "Worker{" +
-                "name='" + name + '\'' +
-                ", role=" + role +
-                ", dailySalary=" + dailySalary +
-                '}';
-    }
-
-    
 }

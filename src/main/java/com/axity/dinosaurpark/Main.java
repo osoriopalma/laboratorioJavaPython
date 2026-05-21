@@ -2,43 +2,44 @@ package com.axity.dinosaurpark;
 
 import com.axity.dinosaurpark.model.CarnivoreDinosaur;
 import com.axity.dinosaurpark.model.Dinosaur;
+import com.axity.dinosaurpark.model.Guard;
 import com.axity.dinosaurpark.model.HerbivoreDinosaur;
-import com.axity.dinosaurpark.model.Tourist;
-import com.axity.dinosaurpark.model.TouristStatus;
+import com.axity.dinosaurpark.model.SatisfactionSurvey;
+import com.axity.dinosaurpark.model.Technician;
+import com.axity.dinosaurpark.model.Ticket;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class Main {
 
     public static void main(String[] args) {
-
-        Tourist tourist = new Tourist(1, "Juan");
-
-        tourist.setStatus(TouristStatus.IN_PARK);
-        tourist.spend(25.0);
-        tourist.recordVisit("Arrival Zone");
-
-        System.out.println("ID: " + tourist.getId());
-        System.out.println("Nombre: " + tourist.getName());
-        System.out.println("Estado: " + tourist.getStatus());
-        System.out.println("Gastado: " + tourist.getMoneySpent());
-        System.out.println("Zonas visitadas: " + tourist.getVisitedZones());
 
         Dinosaur rex = new CarnivoreDinosaur(1, "Rex", "Tyrannosaurus");
         Dinosaur bronto = new HerbivoreDinosaur(2, "Bronto", "Brachiosaurus");
 
         rex.escape();
 
-        System.out.println("Dinosaurio: " + rex.getName());
-        System.out.println("Especie: " + rex.getSpecies());
-        System.out.println("Dieta: " + rex.getDiet());
-        System.out.println("Peligro: " + rex.getDangerLevel());
-        System.out.println("Estado: " + rex.getStatus());
+        List<Dinosaur> dinosaurs = new ArrayList<>();
+        dinosaurs.add(rex);
+        dinosaurs.add(bronto);
 
-        System.out.println("-------------------");
+        Guard guard = new Guard(1, "Carlos", 150.0);
+        Technician technician = new Technician(2, "Luis", 150.0);
 
-        System.out.println("Dinosaurio: " + bronto.getName());
-        System.out.println("Especie: " + bronto.getSpecies());
-        System.out.println("Dieta: " + bronto.getDiet());
-        System.out.println("Peligro: " + bronto.getDangerLevel());
-        System.out.println("Estado: " + bronto.getStatus());
+        System.out.println("Estado de Rex antes del guardia: " + rex.getStatus());
+
+        guard.recaptureEscapedDinosaurs(dinosaurs);
+
+        System.out.println("Estado de Rex después del guardia: " + rex.getStatus());
+
+        Ticket ticket = new Ticket(1, 101, 25.0, "GENERAL");
+
+        SatisfactionSurvey survey = new SatisfactionSurvey(101, "Premium Enclosure", 5);
+
+        System.out.println("Rol guardia: " + guard.getRole());
+        System.out.println("Rol técnico: " + technician.getRole());
+        System.out.println("Ticket turista: " + ticket.getTouristId());
+        System.out.println("Encuesta puntuación: " + survey.getScore());
     }
 }
