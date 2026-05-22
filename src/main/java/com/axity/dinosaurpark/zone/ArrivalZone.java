@@ -41,7 +41,7 @@ public class ArrivalZone implements ParkZone {
     @Override
     public void enter(Tourist tourist) {
 
-        if (hasCapacity()) {
+        if (hasCapacity() && !tourists.contains(tourist)) {
             tourists.add(tourist);
             tourist.setStatus(TouristStatus.IN_PARK);
             tourist.recordVisit(name);

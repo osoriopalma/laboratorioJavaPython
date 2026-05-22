@@ -60,10 +60,11 @@ public class CentralHub implements ParkZone {
     public void visit(Tourist tourist, Random rng) {
 
         enter(tourist);
-
         if (rng.nextDouble() < souvenirProbability) {
             tourist.spend(souvenirPrice);
-            System.out.println(tourist.getName() + " compró souvenir por $" + souvenirPrice);
+            System.out.println(tourist.getName() + " compro souvenir por $" + souvenirPrice);
         }
+
+        exit(tourist);
     }
 }
