@@ -16,6 +16,7 @@ D:\Laboratorio_bloque_4\dinosaur-park\src\main\java\com\axity\dinosaurpark\model
 D:\Laboratorio_bloque_4\dinosaur-park\src\main\java\com\axity\dinosaurpark\persistence\DatabaseConnection.java
 D:\Laboratorio_bloque_4\dinosaur-park\src\main\java\com\axity\dinosaurpark\persistence\DatabaseService.java
 D:\Laboratorio_bloque_4\dinosaur-park\src\main\java\com\axity\dinosaurpark\persistence\LiquibaseRunner.java
+D:\Laboratorio_bloque_4\dinosaur-park\src\main\java\com\axity\dinosaurpark\simulation\ParkState.java
 D:\Laboratorio_bloque_4\dinosaur-park\src\main\java\com\axity\dinosaurpark\simulation\SimulationEngine.java
 D:\Laboratorio_bloque_4\dinosaur-park\src\main\java\com\axity\dinosaurpark\zone\ArrivalZone.java
 D:\Laboratorio_bloque_4\dinosaur-park\src\main\java\com\axity\dinosaurpark\zone\BathroomZone.java

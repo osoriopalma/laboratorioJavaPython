@@ -15,19 +15,14 @@ public class SimulationEngine {
     private final CentralHub centralHub;
     private final BathroomZone bathroomZone;
     private final PowerPlantZone powerPlantZone;
-    private final List<Tourist> tourists;
-    private final List<Dinosaur> dinosaurs;
     private final List<Guard> guards;
     private final List<Technician> technicians;
-    private int touristCounter;
-    private int totalAttacks;
-    private int totalEvacuated;
-    private int totalEscapes;
     private final ParkConfig config;
     private final double touristExitProbability;
     private final double dinosaurEscapeBaseProbability;
     private final DatabaseService databaseService;
     private int currentStep;
+    private final ParkState state;
 
     public SimulationEngine() {
         this.config = ParkConfig.getInstance();
@@ -61,9 +56,9 @@ public class SimulationEngine {
                 spaProbability);
         this.powerPlantZone = new PowerPlantZone(initialEnergy, consumptionPerStep, failureProbability, maintenanceCost,
                 repairCost);
-        this.tourists = new ArrayList<>();
+        List<Tourist> tourists = new ArrayList<>();
 
-        this.dinosaurs = new ArrayList<>();
+        List<Dinosaur> dinosaurs = new ArrayList<>();
         dinosaurs.add(new CarnivoreDinosaur(1, "Rex", "Tyrannosaurus"));
         dinosaurs.add(new HerbivoreDinosaur(2, "Bronto", "Brachiosaurus"));
         dinosaurs.add(new HerbivoreDinosaur(3, "Trike", "Triceratops"));
@@ -76,16 +71,15 @@ public class SimulationEngine {
         technicians.add(new Technician(1, "Luis", 150.0));
         technicians.add(new Technician(2, "Pedro", 150.0));
 
-        this.touristCounter = 1;
-        this.totalAttacks = 0;
-        this.totalEvacuated = 0;
-        this.totalEscapes = 0;
+        this.state = new ParkState(rng, arrivalZone, centralHub, bathroomZone, powerPlantZone, tourists, dinosaurs,
+                guards, technicians, databaseService);
     }
 
     public void run(int totalSteps) {
 
         for (int step = 1; step <= totalSteps; step++) {
             this.currentStep = step;
+            state.setCurrentStep(step);
             System.out.println();
             System.out.println("===== STEP " + step + " =====");
             generateTourists();
@@ -108,57 +102,50 @@ public class SimulationEngine {
     private void generateTourists() {
 
         int newTourists = rng.nextInt(3) + 1;
-
         for (int i = 0; i < newTourists; i++) {
-            Tourist tourist = new Tourist(
-                    touristCounter,
-                    "Tourist-" + touristCounter);
-
-            touristCounter++;
-            tourists.add(tourist);
-            arrivalZone.enter(tourist);
+            Tourist tourist = new Tourist(state.getTouristCounter(), "Tourist-" + state.getTouristCounter());
+            state.incrementTouristCounter();
+            state.getTourists().add(tourist);
+            state.getArrivalZone().enter(tourist);
             System.out.println(tourist.getName() + " entró al parque.");
         }
     }
 
     private void moveTourists() {
 
-        for (Tourist tourist : tourists) {
+        for (Tourist tourist : state.getTourists()) {
             if (rng.nextBoolean()) {
-                centralHub.visit(tourist, rng);
+                state.getCentralHub().visit(tourist, rng);
             } else {
-                bathroomZone.tryEnter(tourist, rng);
+                state.getBathroomZone().tryEnter(tourist, rng);
             }
         }
     }
 
     private void removeTourists() {
 
-        List<Tourist> exiting = new ArrayList<>();
-        for (Tourist tourist : tourists) {
-            if (rng.nextDouble() < touristExitProbability) {
-                exiting.add(tourist);
-                System.out.println(tourist.getName() + " salio del parque.");
+        List<Tourist> touristsLeaving = new ArrayList<>();
+        for (Tourist tourist : state.getTourists()) {
+            if (rng.nextDouble() < 0.20) {
+                touristsLeaving.add(tourist);
             }
         }
-
-        for (Tourist tourist : exiting) {
-
-            tourists.remove(tourist);
-            arrivalZone.exit(tourist);
-            centralHub.exit(tourist);
-            bathroomZone.exit(tourist);
+        for (Tourist tourist : touristsLeaving) {
+            state.getTourists().remove(tourist);
+            state.getArrivalZone().exit(tourist);
+            state.getBathroomZone().exit(tourist);
+            System.out.println(tourist.getName() + " salio del parque.");
         }
     }
 
     private void dinosaurEscapes() {
 
-        for (Dinosaur dinosaur : dinosaurs) {
+        for (Dinosaur dinosaur : state.getDinosaurs()) {
             if (dinosaur.getStatus().name().equals("IN_ENCLOSURE")) {
                 double chance = dinosaur.getDangerLevel() * dinosaurEscapeBaseProbability;
                 if (rng.nextDouble() < chance) {
                     dinosaur.escape();
-                    totalEscapes++;
+                    state.incrementTotalEscapes();
                     System.out.println("PELIGRO: " + dinosaur.getName() + " ESCAPO!");
                     databaseService.saveEvent(currentStep, "DINOSAUR_ESCAPE",
                             dinosaur.getName() + " escapo del recinto");
@@ -168,19 +155,20 @@ public class SimulationEngine {
     }
 
     private void guardsRecaptureDinosaurs() {
-        for (Guard guard : guards) {
-            guard.recaptureEscapedDinosaurs(dinosaurs);
+
+        for (Guard guard : state.getGuards()) {
+            guard.recaptureEscapedDinosaurs(state.getDinosaurs());
         }
     }
 
     private void dinosaurAttacks() {
-        for (Dinosaur dinosaur : dinosaurs) {
+        for (Dinosaur dinosaur : state.getDinosaurs()) {
             if (dinosaur.getStatus().name().equals("ESCAPED")) {
 
-                if (!tourists.isEmpty()) {
-                    Tourist victim = tourists.get(rng.nextInt(tourists.size()));
+                if (!state.getTourists().isEmpty()) {
+                    Tourist victim = state.getTourists().get(rng.nextInt(state.getTourists().size()));
                     victim.setStatus(com.axity.dinosaurpark.model.TouristStatus.ATTACKED);
-                    totalAttacks++;
+                    state.incrementTotalAttacks();
                     System.out.println("ATAQUE: " + dinosaur.getName() + " ataco a " + victim.getName());
                     databaseService.saveEvent(currentStep, "DINOSAUR_ATTACK",
                             dinosaur.getName() + " ataco a " + victim.getName());
@@ -190,10 +178,11 @@ public class SimulationEngine {
     }
 
     private void techniciansRepairPowerPlant() {
-        if (!powerPlantZone.isOperational()) {
-            Technician technician = technicians.get(0);
-            technician.repairIfNeeded(powerPlantZone);
-            databaseService.saveEvent(currentStep, "POWER_PLANT_REPAIRED",
+
+        if (!state.getPowerPlantZone().isOperational()) {
+            Technician technician = state.getTechnicians().get(0);
+            technician.repairIfNeeded(state.getPowerPlantZone());
+            state.getDatabaseService().saveEvent(state.getCurrentStep(), "POWER_PLANT_REPAIRED",
                     technician.getName() + " reparo la planta electrica");
         }
     }
@@ -201,10 +190,10 @@ public class SimulationEngine {
     private void removeAttackedTourists() {
 
         List<Tourist> attacked = new ArrayList<>();
-        for (Tourist tourist : tourists) {
+        for (Tourist tourist : state.getTourists()) {
             if (tourist.getStatus().name().equals("ATTACKED")) {
                 attacked.add(tourist);
-                totalEvacuated++;
+                state.incrementTotalEvacuated();
                 System.out.println(tourist.getName() + " fue evacuado del parque.");
                 databaseService.saveEvent(currentStep, "TOURIST_EVACUATED",
                         tourist.getName() + " fue evacuado por ataque");
@@ -212,7 +201,7 @@ public class SimulationEngine {
         }
 
         for (Tourist tourist : attacked) {
-            tourists.remove(tourist);
+            state.getTourists().remove(tourist);
             arrivalZone.exit(tourist);
             centralHub.exit(tourist);
             bathroomZone.exit(tourist);
@@ -222,38 +211,44 @@ public class SimulationEngine {
     private void printStats() {
 
         System.out.println();
-        System.out.println("ArrivalZone: " + arrivalZone.getCurrentOccupancy());
-        System.out.println("CentralHub: " + centralHub.getCurrentOccupancy());
-        System.out.println("BathroomZone: " + bathroomZone.getCurrentOccupancy());
-        System.out.println("Energia Planta: " + powerPlantZone.getEnergyLevel());
-        System.out.println("Planta Operativa: " + powerPlantZone.isOperational());
-        System.out.println("Total turistas: " + tourists.size());
+        System.out.println("ArrivalZone: " + state.getArrivalZone().getCurrentOccupancy());
+        System.out.println("CentralHub: " + state.getCentralHub().getCurrentOccupancy());
+        System.out.println("BathroomZone: " + state.getBathroomZone().getCurrentOccupancy());
+        System.out.println("Energia Planta: " + state.getPowerPlantZone().getEnergyLevel());
+        System.out.println("Planta Operativa: " + state.getPowerPlantZone().isOperational());
+        System.out.println("Total turistas: " + state.getTourists().size());
+
         printDinosaurStats();
     }
 
     private void printFinalReport() {
 
-        System.out.println();
-        System.out.println("===== REPORTE FINAL =====");
-        System.out.println("Turistas restantes: " + tourists.size());
-        System.out.println("Escapes totales: " + totalEscapes);
-        System.out.println("Ataques totales: " + totalAttacks);
-        System.out.println("Evacuados totales: " + totalEvacuated);
-        double safetyScore = 100.0 - (totalAttacks * 10);
-        if (safetyScore < 0) {
-            safetyScore = 0;
-        }
+        double safetyScore = state.calculateSafetyScore();
 
+        System.out.println("\n===== REPORTE FINAL =====");
+        System.out.println("Turistas restantes: " + state.countActiveTourists());
+        System.out.println("Escapes totales: " + state.getTotalEscapes());
+        System.out.println("Ataques totales: " + state.getTotalAttacks());
+        System.out.println("Evacuados totales: " + state.getTotalEvacuated());
         System.out.println("Score seguridad: " + safetyScore);
-        databaseService.saveFinalReport(tourists.size(), totalEscapes, totalAttacks, totalEvacuated, safetyScore);
+
+        databaseService.saveFinalReport(state.countActiveTourists(), state.getTotalEscapes(), state.getTotalAttacks(),
+                state.getTotalEvacuated(), safetyScore);
     }
 
     private void printDinosaurStats() {
 
         System.out.println("Dinosaurios:");
 
-        for (Dinosaur dinosaur : dinosaurs) {
-            System.out.println("- " + dinosaur.getName() + " | " + dinosaur.getDiet() + " | " + dinosaur.getStatus());
+        for (Dinosaur dinosaur : state.getDinosaurs()) {
+
+            System.out.println(
+                    "- "
+                            + dinosaur.getName()
+                            + " | "
+                            + dinosaur.getDiet()
+                            + " | "
+                            + dinosaur.getStatus());
         }
     }
 }
