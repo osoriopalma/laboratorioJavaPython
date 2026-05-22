@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 import com.axity.dinosaurpark.config.ParkConfig;
+import com.axity.dinosaurpark.persistence.DatabaseService;
 
 public class SimulationEngine {
 
@@ -17,6 +18,7 @@ public class SimulationEngine {
     private final List<Tourist> tourists;
     private final List<Dinosaur> dinosaurs;
     private final List<Guard> guards;
+    private final List<Technician> technicians;
     private int touristCounter;
     private int totalAttacks;
     private int totalEvacuated;
@@ -24,6 +26,8 @@ public class SimulationEngine {
     private final ParkConfig config;
     private final double touristExitProbability;
     private final double dinosaurEscapeBaseProbability;
+    private final DatabaseService databaseService;
+    private int currentStep;
 
     public SimulationEngine() {
         this.config = ParkConfig.getInstance();
@@ -46,6 +50,7 @@ public class SimulationEngine {
         double maintenanceCost = config.getDouble("powerplant.maintenanceCost", 200.0);
         double repairCost = config.getDouble("powerplant.repairCost", 500.0);
 
+        this.databaseService = new DatabaseService();
         this.touristExitProbability = config.getDouble("tourist.exitProbability", 0.15);
         this.dinosaurEscapeBaseProbability = config.getDouble("dinosaur.escapeBaseProbability", 0.05);
 
@@ -67,6 +72,10 @@ public class SimulationEngine {
         guards.add(new Guard(1, "Carlos", 150.0));
         guards.add(new Guard(2, "Miguel", 150.0));
 
+        this.technicians = new ArrayList<>();
+        technicians.add(new Technician(1, "Luis", 150.0));
+        technicians.add(new Technician(2, "Pedro", 150.0));
+
         this.touristCounter = 1;
         this.totalAttacks = 0;
         this.totalEvacuated = 0;
@@ -76,6 +85,7 @@ public class SimulationEngine {
     public void run(int totalSteps) {
 
         for (int step = 1; step <= totalSteps; step++) {
+            this.currentStep = step;
             System.out.println();
             System.out.println("===== STEP " + step + " =====");
             generateTourists();
@@ -89,6 +99,7 @@ public class SimulationEngine {
             bathroomZone.tick();
 
             powerPlantZone.tick(rng);
+            techniciansRepairPowerPlant();
             printStats();
         }
         printFinalReport();
@@ -113,13 +124,9 @@ public class SimulationEngine {
     private void moveTourists() {
 
         for (Tourist tourist : tourists) {
-
             if (rng.nextBoolean()) {
-
                 centralHub.visit(tourist, rng);
-
             } else {
-
                 bathroomZone.tryEnter(tourist, rng);
             }
         }
@@ -128,13 +135,9 @@ public class SimulationEngine {
     private void removeTourists() {
 
         List<Tourist> exiting = new ArrayList<>();
-
         for (Tourist tourist : tourists) {
-
             if (rng.nextDouble() < touristExitProbability) {
-
                 exiting.add(tourist);
-
                 System.out.println(tourist.getName() + " salio del parque.");
             }
         }
@@ -157,6 +160,8 @@ public class SimulationEngine {
                     dinosaur.escape();
                     totalEscapes++;
                     System.out.println("PELIGRO: " + dinosaur.getName() + " ESCAPO!");
+                    databaseService.saveEvent(currentStep, "DINOSAUR_ESCAPE",
+                            dinosaur.getName() + " escapo del recinto");
                 }
             }
         }
@@ -177,8 +182,19 @@ public class SimulationEngine {
                     victim.setStatus(com.axity.dinosaurpark.model.TouristStatus.ATTACKED);
                     totalAttacks++;
                     System.out.println("ATAQUE: " + dinosaur.getName() + " ataco a " + victim.getName());
+                    databaseService.saveEvent(currentStep, "DINOSAUR_ATTACK",
+                            dinosaur.getName() + " ataco a " + victim.getName());
                 }
             }
+        }
+    }
+
+    private void techniciansRepairPowerPlant() {
+        if (!powerPlantZone.isOperational()) {
+            Technician technician = technicians.get(0);
+            technician.repairIfNeeded(powerPlantZone);
+            databaseService.saveEvent(currentStep, "POWER_PLANT_REPAIRED",
+                    technician.getName() + " reparo la planta electrica");
         }
     }
 
@@ -190,6 +206,8 @@ public class SimulationEngine {
                 attacked.add(tourist);
                 totalEvacuated++;
                 System.out.println(tourist.getName() + " fue evacuado del parque.");
+                databaseService.saveEvent(currentStep, "TOURIST_EVACUATED",
+                        tourist.getName() + " fue evacuado por ataque");
             }
         }
 
@@ -227,6 +245,7 @@ public class SimulationEngine {
         }
 
         System.out.println("Score seguridad: " + safetyScore);
+        databaseService.saveFinalReport(tourists.size(), totalEscapes, totalAttacks, totalEvacuated, safetyScore);
     }
 
     private void printDinosaurStats() {

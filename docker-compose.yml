@@ -1,0 +1,16 @@
+services:
+  postgres:
+    image: postgres:16
+    container_name: dinosaur-park-db
+    restart: always
+    environment:
+      POSTGRES_DB: dinosaur_park
+      POSTGRES_USER: dinosaur_user
+      POSTGRES_PASSWORD: dinosaur_pass
+    ports:
+      - "5432:5432"
+    volumes:
+      - dinosaur_park_data:/var/lib/postgresql/data
+
+volumes:
+  dinosaur_park_data:

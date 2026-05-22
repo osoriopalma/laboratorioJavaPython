@@ -13,7 +13,7 @@ public class PowerPlantZone {
 
     public PowerPlantZone(double initialEnergy, double consumptionPerStep, double failureProbability,
             double maintenanceCost, double repairCost) {
-                
+
         this.energyLevel = initialEnergy;
         this.consumptionPerStep = consumptionPerStep;
         this.failureProbability = failureProbability;
@@ -34,6 +34,11 @@ public class PowerPlantZone {
             energyLevel = 0;
         }
 
+        if (energyLevel == 0) {
+            operational = false;
+            System.out.println("SIN ENERGIA EN LA PLANTA ELECTRICA");
+        }
+
         if (rng.nextDouble() < failureProbability) {
             operational = false;
             System.out.println("¡¡FALLA EN LA PLANTA ELÉCTRICA!!");
@@ -43,11 +48,13 @@ public class PowerPlantZone {
     public void repair() {
 
         operational = true;
+        if (energyLevel <= 0) {
+            energyLevel = 50.0;
+        }
         System.out.println("Planta eléctrica reparada.");
     }
 
     public void recharge(double amount) {
-
         energyLevel += amount;
     }
 

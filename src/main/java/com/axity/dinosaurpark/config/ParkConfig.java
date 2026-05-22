@@ -46,7 +46,7 @@ public class ParkConfig {
         return getInt("simulation.seed", 42);
     }
 
-    public int getTotalSteps(){
-        return getInt("Simulation.totalSteps", 100);
+    public int getTotalSteps() {
+        return getInt("simulation.totalSteps", 100);
     }
 }
